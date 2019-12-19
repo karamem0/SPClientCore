@@ -1,4 +1,4 @@
-version: 3.0.0.{build}
+version: "3.1.0.{build}"
 skip_non_tags: true
 image: Visual Studio 2017
 configuration: Release
@@ -14,7 +14,7 @@ environment:
   NUGET_API_KEY:
     secure: HiJ63ZahbXoHe9O5gnu+5k8eR9YwMEV8XSNIdVGLH3doslLZzFI57LPoUWS0usVi
 build_script:
-- ps: |
+- pwsh: |
     Set-Location "$env:APPVEYOR_BUILD_FOLDER\source\$env:APPVEYOR_PROJECT_NAME"
     dotnet restore --source https://api.nuget.org/v3/index.json
     dotnet publish --configuration $env:CONFIGURATION
@@ -24,5 +24,5 @@ artifacts:
 - path: source\$(APPVEYOR_PROJECT_NAME)\bin\$(CONFIGURATION)\netstandard2.0\publish
   name: SPClientCore_$(APPVEYOR_BUILD_VERSION)
 deploy_script:
-- ps: |
+- pwsh: |
     Publish-Module -Name "$env:APPVEYOR_BUILD_FOLDER\source\$env:APPVEYOR_PROJECT_NAME\bin\$env:CONFIGURATION\netstandard2.0\publish\$env:APPVEYOR_PROJECT_NAME.psd1" -NuGetApiKey "$env:NUGET_API_KEY"

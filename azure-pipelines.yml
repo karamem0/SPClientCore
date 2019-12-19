@@ -6,8 +6,6 @@
 trigger:
 - develop
 
-pr: none
-
 pool:
   vmImage: 'windows-latest'
 
@@ -16,7 +14,7 @@ variables:
   manifestFile: 'source/SPClientCore/SPClientCore.psd1'
   nuspecFile: 'source/SPClientCore/SPClientCore.nuspec'
   buildConfiguration: 'Release'
-  buildVersion: '3.0.0'
+  buildVersion: '3.1.0'
   buildId: '$(Build.BuildId)'
 
 steps:
