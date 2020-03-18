@@ -1,0 +1,82 @@
+trigger:
+- develop
+
+pr: none
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  artifactName: 'SPClientCore'
+  solutionName: 'SPClientCore'
+
+stages:
+- stage: Build
+  displayName: Build stage
+  variables:
+    solutionFile: 'source/$(solutionName)/$(solutionName).csproj'
+    manifestFile: 'source/$(solutionName)/$(solutionName).psd1'
+    nuspecFile: 'source/$(solutionName)/$(solutionName).nuspec'
+    buildConfiguration: 'Release'
+    buildVersion: '3.5.2'
+    buildId: '$(Build.BuildId)'
+  jobs:
+  - job: Build
+    displayName: Build job
+    steps:
+    - task: PowerShell@2
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Host "##vso[task.setvariable variable=buildNumber]$env:buildVersion.$env:buildId"
+    - task: PowerShell@2
+      inputs:
+        targetType: 'inline'
+        script: |
+          Update-ModuleManifest -Path $env:manifestFile -ModuleVersion $env:buildNumber
+    - task: PowerShell@2
+      inputs:
+        targetType: 'inline'
+        script: |
+          $xml=[xml](Get-Content $env:nuspecFile)
+          $xml.package.metadata.version=$env:buildNumber
+          $xml.Save($env:nuspecFile)
+    - task: DotNetCoreCLI@2
+      inputs:
+        command: 'restore'
+        projects: '$(solutionFile)'
+    - task: DotNetCoreCLI@2
+      inputs:
+        command: 'publish'
+        publishWebProjects: false
+        projects: '$(solutionFile)'
+        arguments: '-c $(buildConfiguration) -o $(Build.ArtifactStagingDirectory) -p:version=$(buildNumber);fileversion=$(buildNumber)'
+        zipAfterPublish: false
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: '$(artifactName)'
+        publishLocation: 'Container'
+- stage: Release
+  displayName: Release stage
+  jobs:
+  - job: Release
+    displayName: Release job
+    steps:
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: '$(artifactName)'
+        downloadPath: '$(System.ArtifactsDirectory)'
+    - task: NuGetToolInstaller@1
+    - task: NuGetCommand@2
+      inputs:
+        command: pack
+        packagesToPack: '**/*.nuspec'
+        basePath: '$(System.ArtifactsDirectory)/$(artifactName)/$(solutionName)'
+    - task: NuGetCommand@2
+      inputs:
+        command: push
+        packagesToPush: '$(Build.ArtifactsDirectory)/**/*.nupkg'
+        publishVstsFeed: 'fdb6438d-6f58-4d5a-bfe7-0bc23503c733/87175348-f7e0-4bb0-8c79-3174dde590fe'
